@@ -1,0 +1,40 @@
+// Import required modules
+const express = require("express");
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const userRoute = require("./routes/userRoute.js");
+const courseRoute = require("./routes/courseRoute.js");
+const categoryRoute = require("./routes/categoryRoute.js");
+const chapterRoute = require("./routes/chapterRoute.js");
+const cookieParser = require("cookie-parser");
+const cors = require("cors");
+
+dotenv.config();
+// Create an instance of Express
+const app = express();
+
+app.use(express.json());
+app.use(require("morgan")("dev"));
+app.use(cors({ origin: ["http://localhost:3000"], credentials: true }));
+app.use(cookieParser());
+
+app.use("/api/user", userRoute);
+app.use("/api/course", courseRoute);
+app.use("/api/category", categoryRoute);
+app.use("/api/chapter", chapterRoute);
+
+app.get("/api", (req, res) => {
+  let cookie = req.cookies.amset_token;
+  res.json({ token: cookie });
+});
+
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("Could not connect to MongoDB", err));
+
+// Start the server
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
