@@ -8,14 +8,15 @@ const categoryRoute = require("./routes/categoryRoute.js");
 const chapterRoute = require("./routes/chapterRoute.js");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const globalErrorHandler = require("./utils/globalErrorHandler.js");
+const { default: AppError } = require("./utils/AppError.js");
 
 dotenv.config();
 // Create an instance of Express
 const app = express();
-
 app.use(express.json());
 app.use(require("morgan")("dev"));
-app.use(cors({ origin: ["http://localhost:3000"], credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
 
 app.use("/api/user", userRoute);
@@ -33,6 +34,10 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Could not connect to MongoDB", err));
 
+app.use(globalErrorHandler);
+app.all("*", (req, res, next) => {
+  next(new AppError(`This path ${req.originalUrl} isn't on this server!`, 404));
+});
 // Start the server
 const port = process.env.PORT || 5000;
 app.listen(port, () => {

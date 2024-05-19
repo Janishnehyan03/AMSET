@@ -4,7 +4,7 @@ const Chapter = require("../models/chapterModel");
 const { protect, isAdmin } = require("../utils/middlewares");
 const cloudinary = require("cloudinary").v2;
 const dotenv = require("dotenv");
-const cookieParser=require('cookie-parser')
+const cookieParser = require("cookie-parser");
 const router = express.Router();
 
 router.use(cookieParser());
@@ -24,7 +24,6 @@ const upload = multer({
   dest: "uploads/",
   storage: multer.memoryStorage(),
 });
-
 
 async function handleUpload(file) {
   const res = await cloudinary.uploader.upload(file, {
@@ -47,8 +46,8 @@ router.post("/", protect, isAdmin, async (req, res) => {
 // Get all (GET)
 router.get("/", protect, async (req, res) => {
   try {
-    const courses = await Course.find().populate("category");
-    res.json(courses);
+    const courses = await Course.find({ deleted: { $ne: true } })
+    res.json({ results: courses.length, courses });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -57,12 +56,15 @@ router.get("/", protect, async (req, res) => {
 // Get a single course by ID (GET)
 router.get("/:id", protect, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id).populate("category");
-    let chapters = await Chapter.find({ course });
+    const course = await Course.findById(req.params.id);
+    let chapters = await Chapter.find({ course: req.params.id }).sort({
+      position: 1,
+    });
 
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
     }
+
     res.json({ course, chapters });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -84,10 +86,42 @@ router.patch("/:id", protect, isAdmin, async (req, res) => {
   }
 });
 
+router.patch("/:courseId/chapters/reorder", protect, async (req, res) => {
+  try {
+    const list = req.body;
+
+    if (!Array.isArray(list)) {
+      return res.status(400).send("Invalid input format");
+    }
+
+    // Update the position of each chapter
+    for (let item of list) {
+      if (item._id && typeof item.position === "number") {
+        let chapter = await Chapter.findByIdAndUpdate(
+          item._id,
+          { position: item.position },
+          { new: true }
+        );
+        console.log("Updated chapter:", chapter);
+      } else {
+        console.error("Invalid item format:", item);
+      }
+    }
+
+    return res.status(200).send("Success");
+  } catch (error) {
+    console.error("[REORDER]", error);
+    return res.status(500).send("Internal Error");
+  }
+});
 // Delete a course by ID (DELETE)
 router.delete("/:id", protect, isAdmin, async (req, res) => {
   try {
-    const course = await Course.findByIdAndDelete(req.params.id);
+    const course = await Course.findByIdAndUpdate(
+      req.params.id,
+      { deleted: true },
+      { new: true }
+    );
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
     }
@@ -340,7 +374,6 @@ router.patch("/:courseId/publish", protect, isAdmin, async (req, res) => {
       !course.title ||
       !course.description ||
       !course.imageUrl ||
-      !course.category ||
       !hasPublishedChapter
     ) {
       return res.status(401).json({ message: "Missing required fields" });
@@ -349,6 +382,37 @@ router.patch("/:courseId/publish", protect, isAdmin, async (req, res) => {
     const publishedCourse = await Course.findByIdAndUpdate(
       req.params.courseId,
       { isPublished: true },
+      { new: true }
+    );
+
+    return res.status(200).json(publishedCourse);
+  } catch (error) {
+    console.error("[COURSE_ID_PUBLISH]", error);
+    return res.status(500).json({ message: "Internal Error" });
+  }
+});
+router.patch("/:courseId/unpublish", protect, isAdmin, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.courseId);
+    const chapters = await Chapter.find({ course: course._id });
+    if (!course) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    const hasPublishedChapter = chapters.some((chapter) => chapter.isPublished);
+
+    if (
+      !course.title ||
+      !course.description ||
+      !course.imageUrl ||
+      !hasPublishedChapter
+    ) {
+      return res.status(401).json({ message: "Missing required fields" });
+    }
+
+    const publishedCourse = await Course.findByIdAndUpdate(
+      req.params.courseId,
+      { isPublished: false },
       { new: true }
     );
 

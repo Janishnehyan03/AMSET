@@ -20,7 +20,7 @@ router.post("/", protect, isAdmin, async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const categories = await Category.find();
-    res.json(categories);
+    res.json({results:categories.length, categories});
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
