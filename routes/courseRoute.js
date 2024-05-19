@@ -46,7 +46,7 @@ router.post("/", protect, isAdmin, async (req, res) => {
 // Get all (GET)
 router.get("/", protect, async (req, res) => {
   try {
-    const courses = await Course.find({ deleted: { $ne: true } })
+    const courses = await Course.find({ deleted: { $ne: true } });
     res.json({ results: courses.length, courses });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -394,20 +394,8 @@ router.patch("/:courseId/publish", protect, isAdmin, async (req, res) => {
 router.patch("/:courseId/unpublish", protect, isAdmin, async (req, res) => {
   try {
     const course = await Course.findById(req.params.courseId);
-    const chapters = await Chapter.find({ course: course._id });
     if (!course) {
       return res.status(404).json({ message: "Not found" });
-    }
-
-    const hasPublishedChapter = chapters.some((chapter) => chapter.isPublished);
-
-    if (
-      !course.title ||
-      !course.description ||
-      !course.imageUrl ||
-      !hasPublishedChapter
-    ) {
-      return res.status(401).json({ message: "Missing required fields" });
     }
 
     const publishedCourse = await Course.findByIdAndUpdate(
