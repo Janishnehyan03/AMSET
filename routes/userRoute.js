@@ -41,7 +41,9 @@ router.post("/login", async (req, res) => {
 
     // Create a JSON response indicating successful login
     res.cookie("amset_token", token, {
-      expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days in milliseconds
+      httpOnly: true,
+      // max age 30 days
+      maxAge: 3600000 * 24 * 30,
     });
     return res.status(200).json({
       message: "Login successful",
