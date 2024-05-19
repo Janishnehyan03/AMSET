@@ -34,19 +34,10 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Could not connect to MongoDB", err));
 
-app.use(globalErrorHandler);
 app.all("*", (req, res, next) => {
   next(new AppError(`This path ${req.originalUrl} isn't on this server!`, 404));
 });
-app.use((err, req, res, next) => {
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || "error";
-
-  res.status(err.statusCode).json({
-    status: err.status,
-    message: err.message,
-  });
-});
+app.use(globalErrorHandler);
 
 // Start the server
 const port = process.env.PORT || 5000;

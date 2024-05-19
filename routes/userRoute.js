@@ -46,7 +46,6 @@ router.post("/login", async (req, res) => {
       expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days in milliseconds
       sameSite: "Lax", // Adjust based on your needs, 'None' requires secure: true
     });
-    res.send("Cookie set");
     return res.status(200).json({
       message: "Login successful",
       success: true,
