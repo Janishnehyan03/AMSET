@@ -41,10 +41,7 @@ router.post("/login", async (req, res) => {
 
     // Create a JSON response indicating successful login
     res.cookie("amset_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Set to true if in production and using HTTPS
       expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days in milliseconds
-      sameSite: "Lax", // Adjust based on your needs, 'None' requires secure: true
     });
     return res.status(200).json({
       message: "Login successful",
