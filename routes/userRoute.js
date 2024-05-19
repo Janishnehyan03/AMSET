@@ -109,7 +109,11 @@ router.get("/", protect, isAdmin, async (req, res) => {
 
 // Route to check login status
 router.get("/checkLogin", async (req, res) => {
-  const token = req.cookies.amset_token;
+  const token =
+    req.cookies.amset_token ||
+    (req.headers.authorization &&
+      req.headers.authorization.split("Bearer ")[1]);
+
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });
   }
