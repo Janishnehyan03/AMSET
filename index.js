@@ -9,7 +9,7 @@ const chapterRoute = require("./routes/chapterRoute.js");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const globalErrorHandler = require("./utils/globalErrorHandler.js");
-const { default: AppError } = require("./utils/AppError.js");
+const AppError = require("./utils/AppError.js");
 
 dotenv.config();
 // Create an instance of Express
@@ -38,6 +38,16 @@ app.use(globalErrorHandler);
 app.all("*", (req, res, next) => {
   next(new AppError(`This path ${req.originalUrl} isn't on this server!`, 404));
 });
+app.use((err, req, res, next) => {
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || "error";
+
+  res.status(err.statusCode).json({
+    status: err.status,
+    message: err.message,
+  });
+});
+
 // Start the server
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
