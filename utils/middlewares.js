@@ -4,7 +4,7 @@ const User = require("../models/userModel");
 // Middleware to check if the user is logged in
 const protect = async (req, res, next) => {
   const token =
-    req?.cookies?.amset_token || req?.headers?.authorization.split("Bearer ")[1];
+    req?.cookies?.amset_token || req?.headers?.authorization?.split("Bearer ")[1];
 
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: Missing token" });
