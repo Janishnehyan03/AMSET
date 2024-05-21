@@ -24,12 +24,12 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-router.get("/:courseId/:chapterId", async (req, res) => {
+router.get("/:chapterId", async (req, res) => {
   try {
-    const chapter = await Chapter.findOne({
-      course: req.params.courseId,
-      _id: req.params.chapterId,
-    });
+    const chapter = await Chapter.findById(req.params.chapterId);
+    if (!chapter) {
+      res.status(404).json({ message: "Chapter Not Found" });
+    }
     res.json(chapter);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -37,17 +37,59 @@ router.get("/:courseId/:chapterId", async (req, res) => {
 });
 
 // Get a single course by ID (GET)
-router.get("/:id", async (req, res) => {
+router.patch("/:id", async (req, res) => {
   try {
-    const course = await Chapter.findById(req.params.id);
-    if (!course) {
-      return res.status(404).json({ error: "Course not found" });
+    const chapter = await Chapter.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    if (!chapter) {
+      return res.status(404).json({ error: "chapter not found" });
     }
-    res.json(course);
+    res.json(chapter);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+router.patch("/:id/publish", async (req, res) => {
+  try {
+    // Update isPublished to true
+    const chapter = await Chapter.findById(req.params.id);
 
+    if (!chapter) {
+      return res.status(404).json({ message: "Chapter not found" });
+    }
+    const { title, description, videoUrl } = chapter;
 
+    // Check if any required field is missing
+    if (!title || !description || !videoUrl) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    await Chapter.findByIdAndUpdate(
+      req.params.id,
+      { isPublished: true },
+      { new: true }
+    );
+    res.json({ message: "Chapter Updated" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+router.patch("/:id/unpublish", async (req, res) => {
+  try {
+    // Update isPublished to true
+    const chapter = await Chapter.findByIdAndUpdate(
+      req.params.id,
+      { isPublished: false },
+      { new: true }
+    );
+
+    if (!chapter) {
+      return res.status(404).json({ error: "Chapter not found" });
+    }
+
+    res.json(chapter);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 module.exports = router;

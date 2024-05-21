@@ -6,7 +6,6 @@ const courseSchema = new mongoose.Schema(
     description: { type: String },
     imageUrl: { type: String },
     isPublished: { type: Boolean, default: false },
-    chapters: [{ type: mongoose.Schema.Types.ObjectId, ref: "Chapter" }],
     deleted: {
       type: Boolean,
       default: false,

@@ -25,9 +25,18 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    courses: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "Course",
+      },
+    ],
     deleted: {
       type: Boolean,
       default: false,
+    },
+    image:{
+      type:String
     },
     forgotPasswordToken: String,
     forgotPasswordTokenExpiry: Date,

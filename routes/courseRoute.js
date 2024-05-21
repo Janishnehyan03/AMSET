@@ -46,13 +46,28 @@ router.post("/", protect, isAdmin, async (req, res) => {
 // Get all (GET)
 router.get("/", protect, async (req, res) => {
   try {
-    const courses = await Course.find({ deleted: { $ne: true } });
-    res.json({ results: courses.length, courses });
+    const coursesWithChapters = await Course.aggregate([
+      {
+        $match: { deleted: { $ne: true } },
+      },
+      {
+        $lookup: {
+          from: "chapters",
+          localField: "_id",
+          foreignField: "course",
+          as: "chapters",
+        },
+      },
+    ]);
+
+    res.json({
+      results: coursesWithChapters.length,
+      courses: coursesWithChapters,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-
 // Get a single course by ID (GET)
 router.get("/:id", protect, async (req, res) => {
   try {

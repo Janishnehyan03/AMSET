@@ -101,7 +101,20 @@ router.post("/register", protect, isAdmin, async (req, res, next) => {
 router.get("/", protect, isAdmin, async (req, res) => {
   try {
     let users = await User.find({ isAdmin: { $ne: true } });
+
     res.status(200).json({ results: users.length, users });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+router.get("/data/:userId", protect, async (req, res) => {
+  try {
+    let user = await User.findById(req.params.userId).populate('courses')
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+    user.password = undefined;
+    res.status(200).json(user);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -129,4 +142,26 @@ router.get("/checkLogin", async (req, res) => {
     res.status(200).json(user);
   });
 });
+router.post("/add-course", protect, isAdmin, async (req, res) => {
+  try {
+    let { course, userId } = req.body;
+    if (!course) {
+      return res.status(400).json({ message: "Please select a course" });
+    }
+    let user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    await User.findByIdAndUpdate(
+      userId,
+      { $push: { courses: course } },
+      { new: true }
+    );
+
+    res.status(200).json({ message: "Course Added Successfully" });
+  } catch (error) {
+    return res.status(404).json({ message: error.message });
+  }
+});
+
 module.exports = router;
