@@ -3,6 +3,9 @@ const bcryptjs = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const { protect, isAdmin } = require("../utils/middlewares");
+const Progress = require("../models/progressModel");
+const Chapter = require("../models/chapterModel");
+const Course = require("../models/courseModel");
 
 const router = express.Router();
 
@@ -107,14 +110,59 @@ router.get("/", protect, isAdmin, async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+const getProgress = async (userId, courseId) => {
+  try {
+    // Find all published chapters for the given course
+    const publishedChapters = await Chapter.find({
+      course: courseId,
+      isPublished: true,
+    });
+
+    const publishedChapterIds = publishedChapters.map((chapter) => chapter._id);
+
+    // Count the valid completed chapters by the user
+    const validCompletedChapters = await Progress.countDocuments({
+      user: userId,
+      chapter: { $in: publishedChapterIds },
+      isCompleted: true,
+    });
+
+    const progressPercentage =
+      publishedChapterIds.length > 0
+        ? (validCompletedChapters / publishedChapterIds.length) * 100
+        : 0;
+
+    return {
+      publishedChapters,
+      progressPercentage: progressPercentage.toFixed(2),
+    };
+  } catch (error) {
+    console.error("[GET_PROGRESS]", error);
+    return 0;
+  }
+};
+
 router.get("/data/:userId", protect, async (req, res) => {
   try {
-    let user = await User.findById(req.params.userId).populate('courses')
+    const user = await User.findById(req.params.userId).populate("courses");
     if (!user) {
-      return res.status(404).json({ message: "User not found" })
+      return res.status(404).json({ message: "User not found" });
     }
+
+    const courseData = [];
+    for (const course of user.courses) {
+      const { progressPercentage, publishedChapters } = await getProgress(
+        user._id,
+        course._id
+      );
+      courseData.push({
+        course,
+        progressPercentage: progressPercentage,
+      });
+    }
+
     user.password = undefined;
-    res.status(200).json(user);
+    res.status(200).json({ user, courseData });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -151,6 +199,10 @@ router.post("/add-course", protect, isAdmin, async (req, res) => {
     let user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+    let courseData = await Course.findById(course);
+    if (!courseData.isPublished) {
+      return res.status(404).json({ message: "This course is not published" });
     }
     await User.findByIdAndUpdate(
       userId,

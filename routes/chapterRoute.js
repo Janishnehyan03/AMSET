@@ -1,6 +1,7 @@
 const express = require("express");
 const Chapter = require("../models/chapterModel");
 const { protect, isAdmin } = require("../utils/middlewares");
+const Progress = require("../models/progressModel");
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ router.get("/:chapterId", async (req, res) => {
 });
 
 // Get a single course by ID (GET)
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", protect, isAdmin, async (req, res) => {
   try {
     const chapter = await Chapter.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -50,7 +51,7 @@ router.patch("/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-router.patch("/:id/publish", async (req, res) => {
+router.patch("/:id/publish", protect, isAdmin, async (req, res) => {
   try {
     // Update isPublished to true
     const chapter = await Chapter.findById(req.params.id);
@@ -74,7 +75,7 @@ router.patch("/:id/publish", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-router.patch("/:id/unpublish", async (req, res) => {
+router.patch("/:id/unpublish", protect, isAdmin, async (req, res) => {
   try {
     // Update isPublished to true
     const chapter = await Chapter.findByIdAndUpdate(
@@ -92,4 +93,23 @@ router.patch("/:id/unpublish", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+router.patch("/:id/completed", protect, async (req, res) => {
+  try {
+    // Update isPublished to true
+    const chapter = await Chapter.findById(req.params.id);
+
+    if (!chapter) {
+      return res.status(404).json({ error: "Chapter not found" });
+    }
+    await Progress.create({
+      user: req.user._id,
+      chapter: chapter._id,
+      isCompleted: true,
+    });
+    res.json({ message: "Chapter Completed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
