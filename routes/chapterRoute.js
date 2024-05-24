@@ -2,7 +2,7 @@ const express = require("express");
 const Chapter = require("../models/chapterModel");
 const { protect, isAdmin } = require("../utils/middlewares");
 const Progress = require("../models/progressModel");
-
+const Course = require("../models/courseModel");
 const router = express.Router();
 
 // Create a new course (POST)
@@ -93,7 +93,38 @@ router.patch("/:id/unpublish", protect, isAdmin, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 router.patch("/:id/completed", protect, async (req, res) => {
+  try {
+    const chapter = await Chapter.findById(req.params.id);
+
+    if (!chapter) {
+      return res.status(404).json({ error: "Chapter not found" });
+    }
+
+    const existingProgress = await Progress.findOne({
+      user: req.user._id,
+      chapter: chapter._id,
+    });
+
+    if (existingProgress) {
+      existingProgress.isCompleted = true;
+      await existingProgress.save();
+    } else {
+      await Progress.create({
+        user: req.user._id,
+        chapter: chapter._id,
+        isCompleted: true,
+      });
+    }
+
+    res.json({ message: "Chapter Completed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.patch("/:id/uncompleted/", protect, async (req, res) => {
   try {
     // Update isPublished to true
     const chapter = await Chapter.findById(req.params.id);
@@ -101,13 +132,54 @@ router.patch("/:id/completed", protect, async (req, res) => {
     if (!chapter) {
       return res.status(404).json({ error: "Chapter not found" });
     }
-    await Progress.create({
+    let data = await Progress.findOneAndUpdate(
+      {
+        chapter: req.params.id,
+        user: req.user._id,
+      },
+      {
+        isCompleted: false,
+      },
+      { new: true }
+    );
+
+    console.log("====================================");
+    console.log(data);
+    console.log("====================================");
+
+    res.json({ message: "Chapter Uncompleted" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/:courseId/progress", protect, async (req, res) => {
+  try {
+    // Find the course by ID
+    const course = await Course.findById(req.params.courseId);
+
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    // Find all chapters for the course
+    let chapters = await Chapter.find({ course: course._id });
+
+    // Extract chapter IDs
+    let chapterIds = chapters.map((chapter) => chapter._id);
+
+    // Find progress for the user on these chapters
+    let progress = await Progress.find({
       user: req.user._id,
-      chapter: chapter._id,
+      chapter: { $in: chapterIds },
       isCompleted: true,
     });
-    res.json({ message: "Chapter Completed" });
+
+    // Return the progress
+    res.json(progress);
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 });

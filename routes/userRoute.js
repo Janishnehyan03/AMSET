@@ -6,6 +6,7 @@ const { protect, isAdmin } = require("../utils/middlewares");
 const Progress = require("../models/progressModel");
 const Chapter = require("../models/chapterModel");
 const Course = require("../models/courseModel");
+const mongoose = require("mongoose");
 
 const router = express.Router();
 
@@ -151,13 +152,18 @@ router.get("/data/:userId", protect, async (req, res) => {
 
     const courseData = [];
     for (const course of user.courses) {
-      const { progressPercentage, publishedChapters } = await getProgress(
-        user._id,
-        course._id
-      );
+      const { progressPercentage } = await getProgress(user._id, course._id);
+
+      // Find published chapters related to the course
+      const publishedChapters = await Chapter.find({
+        course: course._id,
+        isPublished: true,
+      });
+
       courseData.push({
         course,
-        progressPercentage: progressPercentage,
+        progressPercentage,
+        publishedChapters,
       });
     }
 
@@ -206,11 +212,37 @@ router.post("/add-course", protect, isAdmin, async (req, res) => {
     }
     await User.findByIdAndUpdate(
       userId,
-      { $push: { courses: course } },
+      {
+        $addToSet: { courses: { courseId: mongoose.Types.ObjectId(course) } },
+      },
       { new: true }
     );
 
     res.status(200).json({ message: "Course Added Successfully" });
+  } catch (error) {
+    return res.status(404).json({ message: error.message });
+  }
+});
+
+router.post("/remove-course", protect, isAdmin, async (req, res) => {
+  try {
+    let { course, userId } = req.body;
+    if (!course) {
+      return res.status(400).json({ message: "Please select a course" });
+    }
+    let user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Clear the lastWatchedChapter for the specific course
+    await User.findOneAndUpdate(
+      { _id: userId, "courses.courseId": mongoose.Types.ObjectId(course) },
+      { $set: { "courses.$.lastWatchedChapter": null } },
+      { new: true, useFindAndModify: false }
+    );
+
+    res.status(200).json({ message: "Course Chapter Cleared Successfully" });
   } catch (error) {
     return res.status(404).json({ message: error.message });
   }
