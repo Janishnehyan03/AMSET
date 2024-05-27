@@ -7,6 +7,27 @@ const Progress = require("../models/progressModel");
 const Chapter = require("../models/chapterModel");
 const Course = require("../models/courseModel");
 const mongoose = require("mongoose");
+const cloudinary = require("cloudinary").v2;
+
+const multer = require("multer");
+
+const upload = multer({
+  dest: "uploads/",
+  storage: multer.memoryStorage(),
+});
+
+async function handleUpload(file) {
+  const res = await cloudinary.uploader.upload(file, {
+    resource_type: "auto",
+  });
+  return res;
+}
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUDNAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET,
+});
 
 const router = express.Router();
 
@@ -199,53 +220,96 @@ router.get("/checkLogin", async (req, res) => {
 router.post("/add-course", protect, isAdmin, async (req, res) => {
   try {
     let { course, userId } = req.body;
+
     if (!course) {
       return res.status(400).json({ message: "Please select a course" });
     }
+
     let user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
     let courseData = await Course.findById(course);
-    if (!courseData.isPublished) {
-      return res.status(404).json({ message: "This course is not published" });
+    if (!courseData) {
+      return res.status(404).json({ message: "Course not found" });
     }
+    if (!courseData.isPublished) {
+      return res.status(400).json({ message: "This course is not published" });
+    }
+
+    // Ensure courseId is properly cast to ObjectId
+    const courseObjectId = new mongoose.Types.ObjectId(course);
+
     await User.findByIdAndUpdate(
       userId,
       {
-        $addToSet: { courses: { courseId: mongoose.Types.ObjectId(course) } },
+        $addToSet: { courses: courseObjectId },
       },
       { new: true }
     );
 
-    res.status(200).json({ message: "Course Added Successfully" });
+    res.status(200).json({ message: "Course added successfully" });
   } catch (error) {
-    return res.status(404).json({ message: error.message });
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
 router.post("/remove-course", protect, isAdmin, async (req, res) => {
   try {
-    let { course, userId } = req.body;
+    const { course, userId } = req.body;
+
     if (!course) {
       return res.status(400).json({ message: "Please select a course" });
     }
-    let user = await User.findById(userId);
+
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Clear the lastWatchedChapter for the specific course
-    await User.findOneAndUpdate(
-      { _id: userId, "courses.courseId": mongoose.Types.ObjectId(course) },
-      { $set: { "courses.$.lastWatchedChapter": null } },
-      { new: true, useFindAndModify: false }
+    const courseData = await Course.findById(course);
+    if (!courseData) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    // Remove the course from the user's courses array
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        $pull: { courses: course },
+      },
+      { new: true }
     );
 
-    res.status(200).json({ message: "Course Chapter Cleared Successfully" });
+    res.status(200).json({ message: "Course removed successfully" });
   } catch (error) {
-    return res.status(404).json({ message: error.message });
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
+router.post(
+  "/image-upload",
+  protect,
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const b64 = Buffer.from(req.file.buffer).toString("base64");
+      let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+      const cldRes = await handleUpload(dataURI);
+      await User.findByIdAndUpdate(req.user._id, {
+        image: cldRes.secure_url,
+      });
+
+      res.json({ message: "Image Uploaded" });
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({
+        message: error.message,
+      });
+    }
+  }
+);
 module.exports = router;

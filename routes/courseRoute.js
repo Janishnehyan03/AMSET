@@ -72,9 +72,21 @@ router.get("/", protect, async (req, res) => {
 router.get("/:id", protect, async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
-    let chapters = await Chapter.find({ course: req.params.id,isPublished:true }).sort({
-      position: 1,
-    });
+    let chapters;
+    if (req.user.isAdmin) {
+      chapters = await Chapter.find({
+        course: req.params.id,
+      }).sort({
+        position: 1,
+      });
+    } else {
+      chapters = await Chapter.find({
+        course: req.params.id,
+        isPublished: true,
+      }).sort({
+        position: 1,
+      });
+    }
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
     }
