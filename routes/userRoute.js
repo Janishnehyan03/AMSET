@@ -168,7 +168,7 @@ router.get("/data/:userId", protect, async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).populate(
       "courses",
-      "title"
+      "title imageUrl"
     );
 
     if (!user) {
