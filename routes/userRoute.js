@@ -166,7 +166,11 @@ const getProgress = async (userId, courseId) => {
 
 router.get("/data/:userId", protect, async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).populate("courses");
+    const user = await User.findById(req.params.userId).populate(
+      "courses",
+      "title"
+    );
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -179,7 +183,7 @@ router.get("/data/:userId", protect, async (req, res) => {
       const publishedChapters = await Chapter.find({
         course: course._id,
         isPublished: true,
-      });
+      }).select('title course')
 
       courseData.push({
         course,
