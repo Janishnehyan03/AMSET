@@ -6,6 +6,7 @@ const courseSchema = new mongoose.Schema(
     description: { type: String },
     imageUrl: { type: String },
     isPublished: { type: Boolean, default: false },
+    price: { type: Number },
     deleted: {
       type: Boolean,
       default: false,

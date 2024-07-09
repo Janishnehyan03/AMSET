@@ -108,6 +108,7 @@ router.patch("/:id", protect, isAdmin, async (req, res) => {
     }
     res.json(course);
   } catch (error) {
+    
     res.status(400).json({ error: error.message });
   }
 });
