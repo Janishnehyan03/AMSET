@@ -44,7 +44,7 @@ router.post("/", protect, isAdmin, async (req, res) => {
 });
 
 // Get all (GET)
-router.get("/", protect, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const coursesWithChapters = await Course.aggregate([
       {
@@ -56,6 +56,11 @@ router.get("/", protect, async (req, res) => {
           localField: "_id",
           foreignField: "course",
           as: "chapters",
+        },
+      },
+      {
+        $project: {
+          "chapters.videoUrl": 0, // Exclude the videoUrl field from chapters
         },
       },
     ]);
@@ -108,7 +113,6 @@ router.patch("/:id", protect, isAdmin, async (req, res) => {
     }
     res.json(course);
   } catch (error) {
-    
     res.status(400).json({ error: error.message });
   }
 });
