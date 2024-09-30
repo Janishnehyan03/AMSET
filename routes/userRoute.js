@@ -82,7 +82,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.post("/register", protect, isAdmin, async (req, res, next) => {
+router.post("/register", protect, async (req, res, next) => {
   try {
     const { username, email, password, mobileNumber } = req.body;
     if (!username || !email || !password || !mobileNumber) {
@@ -183,7 +183,7 @@ router.get("/data/:userId", protect, async (req, res) => {
       const publishedChapters = await Chapter.find({
         course: course._id,
         isPublished: true,
-      }).select('title course')
+      }).select("title course");
 
       courseData.push({
         course,
