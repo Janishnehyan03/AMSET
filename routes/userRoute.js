@@ -82,7 +82,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.post("/register", protect, async (req, res, next) => {
+router.post("/register", async (req, res, next) => {
   try {
     const { username, email, password, mobileNumber } = req.body;
     if (!username || !email || !password || !mobileNumber) {
