@@ -64,7 +64,11 @@ router.post(
 
 router.get("/", async (req, res) => {
   try {
-    let data = await Job.find().populate("vacancyId");
+    let query;
+    if (req.query) {
+      query = req.query;
+    }
+    let data = await Job.find(query).populate("vacancyId");
     res.status(200).json({ results: data.length, data });
   } catch (error) {
     res.status(400).json({ error });
