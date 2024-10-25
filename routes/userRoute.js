@@ -141,6 +141,18 @@ router.get("/profile", protect, async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+router.patch("/profile/:id", protect, async (req, res) => {
+  try {
+    let user = await User.findByIdAndUpdate(req.user._id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    user.password = undefined;
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 const getProgress = async (userId, courseId) => {
   try {
     // Find all published chapters for the given course

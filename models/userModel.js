@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
+    firstName: {
+      type: String,
+      required: [true, "Please provide first name"],
+    },
+    lastName: {
+      type: String,
+    },
     username: {
       type: String,
       required: [true, "Please provide username"],
@@ -35,13 +42,28 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    image:{
-      type:String
+    image: {
+      type: String,
     },
     forgotPasswordToken: String,
     forgotPasswordTokenExpiry: Date,
     verifyToken: String,
     verifyTokenExpiry: Date,
+    address: {
+      type: String,
+    },
+    postOffice: {
+      type: String,
+    },
+    district: {
+      type: String,
+    },
+    pinCode: {
+      type: String,
+    },
+    secondaryMobileNumber: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
