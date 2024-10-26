@@ -84,10 +84,11 @@ router.post("/login", async (req, res) => {
 
 router.post("/register", async (req, res, next) => {
   try {
-    const { username, email, password, mobileNumber } = req.body;
-    if (!username || !email || !password || !mobileNumber) {
+    const { username, email, password, mobileNumber, fullName } = req.body;
+    if (!username || !email || !password || !mobileNumber || !fullName) {
       return res.status(400).json({
-        error: "Please provide username, email, mobile number, and password",
+        error:
+          "Please provide full name, username, email, mobile number, and password",
       });
     }
 
@@ -106,6 +107,7 @@ router.post("/register", async (req, res, next) => {
       email,
       password: hashedPassword,
       mobileNumber,
+      fullName,
     });
     await newUser.save();
 
