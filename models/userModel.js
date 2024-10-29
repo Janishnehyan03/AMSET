@@ -58,6 +58,16 @@ const userSchema = new mongoose.Schema(
     pinCode: {
       type: String,
     },
+    country: {
+      type: String,
+    },
+    experience: {
+      type: String,
+    },
+    experienceSector: {
+      type: String,
+    },
+
     secondaryMobileNumber: {
       type: String,
     },
