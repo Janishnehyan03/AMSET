@@ -102,15 +102,7 @@ router.post("/register", async (req, res, next) => {
     const hashedPassword = await bcryptjs.hash(password, 10);
 
     // Create a new user
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
-      mobileNumber,
-      fullName,
-    });
-    await newUser.save();
-
+    const newUser = await User.create({ ...req.body, password: hashedPassword })
     // Clear sensitive data
     newUser.password = undefined;
 
