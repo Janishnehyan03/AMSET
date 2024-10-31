@@ -29,6 +29,9 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    bioDescription: {
+      type: String,
+    },
     courses: [
       {
         type: mongoose.Types.ObjectId,
