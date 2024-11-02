@@ -4,7 +4,7 @@ const chapterSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     description: { type: String },
-    videoUrl: { type: String },
+    videoUrl: { type: String, select: false },
     isPublished: { type: Boolean, default: false },
     course: { type: mongoose.Types.ObjectId, ref: "Course" },
     position: { type: Number },

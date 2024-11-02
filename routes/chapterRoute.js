@@ -3,6 +3,7 @@ const Chapter = require("../models/chapterModel");
 const { protect, isAdmin } = require("../utils/middlewares");
 const Progress = require("../models/progressModel");
 const Course = require("../models/courseModel");
+const User = require("../models/userModel");
 const router = express.Router();
 
 // Create a new course (POST)
@@ -17,7 +18,7 @@ router.post("/", protect, isAdmin, async (req, res) => {
 });
 
 // Get all chapters (GET)
-router.get("/", async (req, res) => {
+router.get("/", protect, isAdmin, async (req, res) => {
   try {
     const chapters = await Chapter.find();
     res.json(chapters);
@@ -25,17 +26,58 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-router.get("/:chapterId", async (req, res) => {
+router.get("/:chapterId", protect, async (req, res) => {
   try {
-    const chapter = await Chapter.findById(req.params.chapterId);
+    // Find the chapter and populate course details
+    const chapter = await Chapter.findById(req.params.chapterId).populate('course', 'isPremium');
     if (!chapter) {
-      res.status(404).json({ message: "Chapter Not Found" });
+      return res.status(404).json({ message: "Chapter Not Found" });
     }
-    res.json(chapter);
+
+    const course = chapter.course;
+    if (!course) {
+      return res.status(404).json({ message: "Course Not Found" });
+    }
+
+    let videoUrl;
+
+    // Check if the course is premium
+    if (course.isPremium) {
+      // If the course is premium, check if the user has access to it
+      const user = await User.findById(req.user._id).select('courses');
+      if (!user) {
+        return res.status(404).json({ message: "User Not Found" });
+      }
+
+      // Check if the user has enrolled in the premium course
+      const hasAccess = user.courses.some(courseId => courseId.equals(course._id));
+      
+      if (hasAccess) {
+        // User has access, include the videoUrl
+        const chapterWithVideo = await Chapter.findById(req.params.chapterId).select('videoUrl');
+        videoUrl = chapterWithVideo.videoUrl;
+      }
+    } else {
+      // If the course is not premium, include the videoUrl
+      const chapterWithVideo = await Chapter.findById(req.params.chapterId).select('videoUrl');
+      videoUrl = chapterWithVideo.videoUrl;
+    }
+
+    // Prepare the response
+    const response = {
+      title: chapter.title,
+      description: chapter.description,
+      isPublished: chapter.isPublished,
+      position: chapter.position,
+      ...(videoUrl && { videoUrl })
+    };
+
+    res.json(response);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Get a single course by ID (GET)
 router.patch("/:id", protect, isAdmin, async (req, res) => {

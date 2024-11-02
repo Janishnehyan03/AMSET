@@ -133,7 +133,7 @@ router.patch("/:courseId/chapters/reorder", protect, async (req, res) => {
           { position: item.position },
           { new: true }
         );
-        console.log("Updated chapter:", chapter);
+       
       } else {
         console.error("Invalid item format:", item);
       }
