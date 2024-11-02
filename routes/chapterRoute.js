@@ -51,8 +51,8 @@ router.get("/:chapterId", protect, async (req, res) => {
 
       // Check if the user has enrolled in the premium course
       const hasAccess = user.courses.some(courseId => courseId.equals(course._id));
-      
-      if (hasAccess) {
+
+      if (hasAccess || req.user.isAdmin) {
         // User has access, include the videoUrl
         const chapterWithVideo = await Chapter.findById(req.params.chapterId).select('videoUrl');
         videoUrl = chapterWithVideo.videoUrl;
@@ -65,6 +65,7 @@ router.get("/:chapterId", protect, async (req, res) => {
 
     // Prepare the response
     const response = {
+      _id: chapter._id,
       title: chapter.title,
       description: chapter.description,
       isPublished: chapter.isPublished,
