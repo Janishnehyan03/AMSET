@@ -42,7 +42,7 @@ router.get("/:chapterId", protect, async (req, res) => {
     let videoUrl;
 
     // Check if the course is premium
-    if (course.isPremium) {
+    if (chapter.isPremium) {
       // If the course is premium, check if the user has access to it
       const user = await User.findById(req.user._id).select('courses');
       if (!user) {

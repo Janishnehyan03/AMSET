@@ -7,10 +7,6 @@ const courseSchema = new mongoose.Schema(
     imageUrl: { type: String },
     isPublished: { type: Boolean, default: false },
     price: { type: Number },
-    isPremium: {
-      type: Boolean,
-      default: false
-    },
     deleted: {
       type: Boolean,
       default: false,
