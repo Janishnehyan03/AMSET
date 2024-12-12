@@ -19,6 +19,7 @@ cloudinary.config({
 });
 
 const multer = require("multer");
+const { addChapterToCourse, amsetRecommended } = require("../controllers/courseController");
 
 const upload = multer({
   dest: "uploads/",
@@ -42,6 +43,8 @@ router.post("/", protect, isAdmin, async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+router.post("/:courseId/chapters", protect, isAdmin, addChapterToCourse);
 
 // Get all (GET)
 router.get("/", async (req, res) => {
@@ -76,21 +79,21 @@ router.get("/", async (req, res) => {
 // Get a single course by ID (GET)
 router.get("/:id", protect, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
+    const course = await Course.findById(req.params.id).populate('chapters')
     let chapters;
     if (req.user.isAdmin) {
       chapters = await Chapter.find({
         course: req.params.id,
       }).sort({
         position: 1,
-      });
+      })
     } else {
       chapters = await Chapter.find({
         course: req.params.id,
         isPublished: true,
       }).sort({
         position: 1,
-      });
+      })
     }
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
@@ -101,7 +104,7 @@ router.get("/:id", protect, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
+router.get('/:courseId/amset-recommended', protect, isAdmin, amsetRecommended)
 // Update a course by ID (PUT)
 router.patch("/:id", protect, isAdmin, async (req, res) => {
   try {
@@ -133,7 +136,7 @@ router.patch("/:courseId/chapters/reorder", protect, async (req, res) => {
           { position: item.position },
           { new: true }
         );
-       
+
       } else {
         console.error("Invalid item format:", item);
       }

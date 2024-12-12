@@ -84,6 +84,8 @@ router.post("/login", async (req, res) => {
 
 router.post("/register", async (req, res, next) => {
   try {
+    console.log(req.body);
+    
     const { username, email, password, mobileNumber, fullName } = req.body;
     if (!username || !email || !password || !mobileNumber || !fullName) {
       return res.status(400).json({

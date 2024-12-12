@@ -70,10 +70,30 @@ const userSchema = new mongoose.Schema(
     experienceSector: {
       type: String,
     },
-
     secondaryMobileNumber: {
       type: String,
     },
+    completedChapters: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Chapter" },
+    ],
+    answers: [
+      {
+        chapterId: { type: mongoose.Schema.Types.ObjectId, ref: "Chapter" },
+        courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+        userAnswers: [
+          {
+            questionId: { type: mongoose.Schema.Types.ObjectId, ref: "Question" },
+            selectedOptionIndex: Number,
+          },
+        ],
+      },
+    ],
+    courseCoins: [
+      {
+        courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+        coins: { type: Number, default: 0 },
+      },
+    ],
   },
   { timestamps: true }
 );

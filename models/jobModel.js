@@ -14,6 +14,7 @@ const jobSchema = new mongoose.Schema(
     imageUrl: {
       type: String,
     },
+ 
   },
   { timestamps: true }
 );

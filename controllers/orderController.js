@@ -28,6 +28,9 @@ exports.createOrder = async (req, res) => {
         await newOrder.save();
         res.json({ orderId: order.id, amount: course.price });
     } catch (error) {
+        console.log('====================================');
+        console.log(error);
+        console.log('====================================');
         res.status(500).json({ message: error.message });
     }
 };
