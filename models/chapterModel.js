@@ -1,9 +1,9 @@
-const mongoose = require("mongoose");
+const { default: mongoose } = require("mongoose");
 
 const questionSchema = new mongoose.Schema({
-  questionText: { type: String, required: true }, // The text of the question
-  options: [{ type: String, required: true }],    // List of options
-  correctAnswerIndex: { type: Number, required: true }, // Index of the correct answer
+  questionText: { type: String, required: true },
+  options: [{ type: String, required: true }],
+  correctAnswerIndex: { type: Number, required: true },
 });
 
 const chapterSchema = new mongoose.Schema(
@@ -13,8 +13,7 @@ const chapterSchema = new mongoose.Schema(
     videoUrl: { type: String, select: false },
     isPublished: { type: Boolean, default: false },
     position: { type: Number },
-    isPremium: { type: Boolean, default: false },
-    questions: [questionSchema], // Array of questions
+    questions: [questionSchema],
   },
   { timestamps: true }
 );

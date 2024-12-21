@@ -84,8 +84,7 @@ router.post("/login", async (req, res) => {
 
 router.post("/register", async (req, res, next) => {
   try {
-    console.log(req.body);
-    
+
     const { username, email, password, mobileNumber, fullName } = req.body;
     if (!username || !email || !password || !mobileNumber || !fullName) {
       return res.status(400).json({
@@ -130,7 +129,7 @@ router.get("/", protect, isAdmin, async (req, res) => {
 });
 router.get("/profile", protect, async (req, res) => {
   try {
-    let user = await User.findById(req.user._id);
+    let user = await User.findById(req.user._id)
     user.password = undefined;
     res.status(200).json(user);
   } catch (error) {
@@ -184,35 +183,32 @@ const getProgress = async (userId, courseId) => {
 router.get("/data/:userId", protect, async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).populate(
-      "courses",
-      "title imageUrl"
+      "courseCoins.courseId",
     );
+
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const courseData = [];
-    for (const course of user.courses) {
-      const { progressPercentage } = await getProgress(user._id, course._id);
-
-      // Find published chapters related to the course
-      const publishedChapters = await Chapter.find({
-        course: course._id,
-        isPublished: true,
-      }).select("title course");
-
-      courseData.push({
-        course,
-        progressPercentage,
-        publishedChapters,
-      });
-    }
-
     user.password = undefined;
-    res.status(200).json({ user, courseData });
+    res.status(200).json({ user, });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+router.get("/logout", async (req, res) => {
+  try {
+    // Clear the authentication cookie
+    res.clearCookie("amset_token", {
+      httpOnly: true, // Prevents access from JavaScript
+      secure: process.env.NODE_ENV === "production", // Ensures the cookie is only sent over HTTPS in production
+      sameSite: "strict", // Prevents CSRF attacks
+    });
+    return res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 });
 

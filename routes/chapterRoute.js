@@ -16,13 +16,10 @@ router.get("/:chapterId", protect, getOneChapter);
 
 
 // Get a single course by ID (GET)
-router.patch("/:id", protect, isAdmin,);
 router.patch("/:id/publish", protect, isAdmin, updateChapter);
 router.patch("/:id", protect, isAdmin, updateChapter);
 router.patch("/:id/questions", protect, isAdmin, createQuestions);
-router.patch("/:id/questions", protect, isAdmin, createQuestions);
 router.patch("/:chapterId/questions/:questionId", protect, isAdmin, editQuestion);
-router.delete("/:chapterId/questions/:questionId", protect, isAdmin, deleteQuestion);
 router.post("/:chapterId/complete-chapter", protect, completeChapter);
 
 

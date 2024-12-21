@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const Chapter = require("../models/chapterModel");
 const Course = require("../models/courseModel");
 const User = require("../models/userModel");
@@ -26,7 +27,6 @@ exports.getOneChapter = async (req, res) => {
         // Find the chapter and populate course and questions details
         let { courseId } = req.query
         const chapter = await Chapter.findById(req.params.chapterId)
-            .populate('isPremium')
             .populate('questions'); // Populate the questions
 
         if (!chapter) {
@@ -219,29 +219,35 @@ exports.completeChapter = async (req, res) => {
     try {
         const { chapterId } = req.params;
         const { courseId } = req.query;
+
+        // Convert IDs to ObjectId
+        const chapterObjectId = new mongoose.Types.ObjectId(chapterId);
+        const courseObjectId = new mongoose.Types.ObjectId(courseId);
+
         const user = await User.findById(req.user._id);
-
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({ message: "User not found." });
         }
 
-        const chapter = await Chapter.findById(chapterId);
-        if (!chapter) {
-            return res.status(404).json({ message: "Chapter not found" });
+        const chapter = await Chapter.findById(chapterObjectId);
+        if (!chapter || !chapter.questions || chapter.questions.length === 0) {
+            return res.status(404).json({ message: "Chapter not found or has no questions." });
         }
 
-        const course = await Course.findOne({ _id: courseId, chapters: chapterId });
+        const course = await Course.findOne({
+            _id: courseObjectId,
+            "chapters.chapter": chapterObjectId, // Correct way to query nested fields
+        });
         if (!course) {
-            return res
-                .status(404)
-                .json({ message: "Course not found or chapter is not part of this course" });
+            return res.status(404).json({
+                message: "Course not found or chapter is not part of this course.",
+            });
         }
 
-        // Check if the user has already completed this chapter for this course
         const existingAnswers = user.answers.find(
             (answer) =>
-                answer.chapterId.toString() === chapterId &&
-                answer.courseId.toString() === courseId
+                answer.chapterId.toString() === chapterObjectId.toString() &&
+                answer.courseId.toString() === courseObjectId.toString()
         );
 
         if (existingAnswers) {
@@ -251,9 +257,12 @@ exports.completeChapter = async (req, res) => {
         }
 
         const userAnswers = req.body.userAnswers;
+        if (!Array.isArray(userAnswers)) {
+            return res.status(400).json({ message: "Invalid or missing user answers." });
+        }
+
         let correctAnswersCount = 0;
 
-        // Check answers
         chapter.questions.forEach((question) => {
             const userAnswer = userAnswers.find(
                 (answer) => answer.questionId === question._id.toString()
@@ -267,21 +276,18 @@ exports.completeChapter = async (req, res) => {
             }
         });
 
-        // If all answers are correct, award coins
         if (correctAnswersCount === chapter.questions.length) {
-            // Update user's answers
-            user.answers.push({ chapterId, courseId, userAnswers });
-            user.completedChapters.push(chapterId);
+            user.answers.push({ chapterId: chapterObjectId, courseId: courseObjectId, userAnswers });
+            user.completedChapters.push(chapterObjectId);
 
-            // Find or create an entry in courseCoins for this course
             const courseCoinEntry = user.courseCoins.find(
-                (coin) => coin.courseId.toString() === courseId
+                (coin) => coin.courseId.toString() === courseObjectId.toString()
             );
 
             if (courseCoinEntry) {
                 courseCoinEntry.coins += 100;
             } else {
-                user.courseCoins.push({ courseId, coins: 100 });
+                user.courseCoins.push({ courseId: courseObjectId, coins: 100 });
             }
 
             await user.save();

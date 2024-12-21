@@ -10,10 +10,14 @@ const courseSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    chapters: [{ type: mongoose.Types.ObjectId, ref: "Chapter" }],
+    chapters: [{ chapter: { type: mongoose.Types.ObjectId, ref: "Chapter" }, isPremium: { type: Boolean, default: true } }],
     coinsOfRecommend: {
       type: Number
-    }
+    },
+    vacancyCount: {
+      type: Number
+    },
+    learners: [{ user: { type: mongoose.Types.ObjectId, ref: "User" }, joinedOn: { type: Date } }]
   },
   { timestamps: true }
 );
