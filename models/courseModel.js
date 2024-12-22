@@ -17,7 +17,13 @@ const courseSchema = new mongoose.Schema(
     vacancyCount: {
       type: Number
     },
-    learners: [{ user: { type: mongoose.Types.ObjectId, ref: "User" }, joinedOn: { type: Date } }]
+
+    learners: [{ user: { type: mongoose.Types.ObjectId, ref: "User" }, joinedOn: { type: Date } }],
+    hiringPartners: [{
+      companyName: { type: String },
+      companyLogo: { type: String },
+      poster: { type: String },
+    }]
   },
   { timestamps: true }
 );

@@ -141,7 +141,64 @@ router.post(
     }
   }
 );
-
+router.post(
+  '/upload-hiring-partners/:courseId',
+  protect,
+  isAdmin,
+  upload.single('my_file'),
+  async (req, res) => {
+    try {
+      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      let dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
+      const cldRes = await handleUpload(dataURI);
+      let course = await Course.findByIdAndUpdate(
+        req.params.courseId,
+        {
+          $push: {
+            hiringPartners: {
+              companyName: req.body.companyName,
+              poster: cldRes.secure_url,
+            },
+          },
+        },
+        { new: true }
+      );
+      res.json(course);
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({
+        message: error.message,
+      });
+    }
+  }
+);
+// create a remove hiring partner route
+router.patch(
+  '/remove-hiring-partner/:courseId',
+  protect,
+  isAdmin,
+  async (req, res) => {
+    try {
+      let course = await Course.findByIdAndUpdate(
+        req.params.courseId,
+        {
+          $pull: {
+            hiringPartners: {
+              _id: req.body.hiringPartnerId,
+            },
+          },
+        },
+        { new: true }
+      );
+      res.json(course);
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({
+        message: error.message,
+      });
+    }
+  }
+);
 router.patch("/:courseId/publish", protect, isAdmin, async (req, res) => {
   try {
     const course = await Course.findById(req.params.courseId);
