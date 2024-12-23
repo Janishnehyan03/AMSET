@@ -9,6 +9,7 @@ const vacancySchema = new mongoose.Schema(
     imageUrl: {
       type: String,
     },
+    VacancyCount: Number
   },
   { timestamps: true }
 );
