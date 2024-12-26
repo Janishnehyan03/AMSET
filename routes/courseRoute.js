@@ -145,20 +145,46 @@ router.post(
   '/upload-hiring-partners/:courseId',
   protect,
   isAdmin,
-  upload.single('my_file'),
+  upload.fields([{ name: 'companyLogo', maxCount: 1 }, { name: 'poster', maxCount: 1 }]),
   async (req, res) => {
     try {
-      const b64 = Buffer.from(req.file.buffer).toString('base64');
-      let dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
-      const cldRes = await handleUpload(dataURI);
+      const companyLogoFile = req.files['companyLogo'] ? req.files['companyLogo'][0] : null;
+      const posterFile = req.files['poster'] ? req.files['poster'][0] : null;
+
+      let companyLogoUrl = null;
+      let posterUrl = null;
+
+      if (companyLogoFile) {
+        const b64Logo = Buffer.from(companyLogoFile.buffer).toString('base64');
+        let dataURILogo = 'data:' + companyLogoFile.mimetype + ';base64,' + b64Logo;
+        const cldResLogo = await handleUpload(dataURILogo);
+        companyLogoUrl = cldResLogo.secure_url;
+      }
+
+      if (posterFile) {
+        const b64Poster = Buffer.from(posterFile.buffer).toString('base64');
+        let dataURIPoster = 'data:' + posterFile.mimetype + ';base64,' + b64Poster;
+        const cldResPoster = await handleUpload(dataURIPoster);
+        posterUrl = cldResPoster.secure_url;
+      }
+
+      let updateData = {
+        companyName: req.body.companyName,
+      };
+
+      if (companyLogoUrl) {
+        updateData.companyLogo = companyLogoUrl;
+      }
+
+      if (posterUrl) {
+        updateData.poster = posterUrl;
+      }
+
       let course = await Course.findByIdAndUpdate(
         req.params.courseId,
         {
           $push: {
-            hiringPartners: {
-              companyName: req.body.companyName,
-              poster: cldRes.secure_url,
-            },
+            hiringPartners: updateData,
           },
         },
         { new: true }
@@ -171,8 +197,7 @@ router.post(
       });
     }
   }
-);
-// create a remove hiring partner route
+);// create a remove hiring partner route
 router.patch(
   '/remove-hiring-partner/:courseId',
   protect,
