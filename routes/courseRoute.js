@@ -197,7 +197,8 @@ router.post(
       });
     }
   }
-);// create a remove hiring partner route
+);
+// create a remove hiring partner route
 router.patch(
   '/remove-hiring-partner/:courseId',
   protect,
