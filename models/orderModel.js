@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const orderSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
+    chapter: { type: mongoose.Schema.Types.ObjectId, ref: 'Chapter' },
     amount: Number,
-    paymentId: String,
     orderId: String,
     status: { type: String, default: 'pending' }
 });

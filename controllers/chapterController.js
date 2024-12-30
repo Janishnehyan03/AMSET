@@ -56,6 +56,16 @@ exports.getOneChapter = async (req, res) => {
                 // User has access, include the videoUrl
                 const chapterWithVideo = await Chapter.findById(req.params.chapterId).select('videoUrl');
                 videoUrl = chapterWithVideo.videoUrl;
+            } else {
+                const isEnrolled = chapter.purchasedUsers.includes(req.user._id);
+                if (!isEnrolled) {
+                    return res.status(403).json({ message: "You need to purchase the course to access this chapter" });
+                }
+                else {
+                    // User has access, include the videoUrl
+                    const chapterWithVideo = await Chapter.findById(req.params.chapterId).select('videoUrl');
+                    videoUrl = chapterWithVideo.videoUrl;
+                }
             }
         } else {
             // If the course is not premium, include the videoUrl

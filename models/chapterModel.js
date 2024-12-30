@@ -14,6 +14,13 @@ const chapterSchema = new mongoose.Schema(
     isPublished: { type: Boolean, default: false },
     position: { type: Number },
     questions: [questionSchema],
+    isPremium: { type: Boolean, default: false },
+    purchasedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      }
+    ]
   },
   { timestamps: true }
 );

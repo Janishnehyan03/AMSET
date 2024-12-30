@@ -1,94 +1,174 @@
+const Chapter = require('../models/chapterModel');
 const Course = require('../models/courseModel');
 const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const razorpay = require('../utils/razorpay');
+const crypto = require("crypto");
 
-exports.createOrder = async (req, res) => {
-    const userId = req.user._id
-    const { courseId, } = req.body;
-    const course = await Course.findById(courseId);
 
-    if (!course) return res.status(404).json({ message: "Course not found" });
 
-    const orderOptions = {
-        amount: course.price * 100, // Amount in paisa
-        currency: "INR",
-        receipt: `receipt_order_${Date.now()}`,
-    };
-
+exports.purchaseCourse = async (req, res) => {
     try {
-        const order = await razorpay.orders.create(orderOptions);
-        const newOrder = new Order({
-            user: userId,
+        const { courseId } = req.params;
+        const course = await Course.findById(courseId);
+        console.log(course
+
+        )
+
+        if (!course) {
+            return res.status(404).json({
+                success: false,
+                message: "Course not found",
+            });
+        }
+
+        const options = {
+            amount: course.price * 100, // Convert to smallest currency unit
+            currency: "INR",
+            receipt: shortid.generate(),
+            payment_capture: 1, // Auto capture
+        };
+
+        const response = await razorpay.orders.create(options);
+        console.log(response);
+        for (const chapter of course.chapters) {
+            await Chapter.findByIdAndUpdate(
+                chapter.chapter._id,
+                { $addToSet: { purchasedUsers: req.user._id } }, // $addToSet ensures no duplicates
+                { new: true }
+            );
+        }
+
+        const order = new Order({
+            user: req.user._id,
             course: courseId,
             amount: course.price,
-            orderId: order.id,
-            status: 'created'
+            currency: "INR",
+            orderId: response.id,
+            status: "Pending",
         });
-        await newOrder.save();
-        res.json({ orderId: order.id, amount: course.price });
+
+        await order.save();
+
+        res.status(200).json({
+            success: true,
+            data: response,
+        });
     } catch (error) {
-        console.log('====================================');
-        console.log(error);
-        console.log('====================================');
-        res.status(500).json({ message: error.message });
+        console.error("Error purchasing course:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error. Please try again.",
+        });
+    }
+}
+
+exports.purchaseChapter = async (req, res) => {
+    try {
+        const { chapterId, } = req.params;
+
+        const chapter = await Chapter.findByIdAndUpdate(chapterId, { $addToSet: { purchasedUsers: req.user._id } }, { new: true });
+        console.log(chapter)
+        if (!chapter) {
+            return res.status(404).json({
+                success: false,
+                message: "Chapter not found",
+            });
+        }
+        const options = {
+            amount: req.body.amount * 100, // Convert to smallest currency unit
+            currency: "INR",
+            receipt: crypto.randomBytes(4).toString("hex"),
+            payment_capture: 1, // Auto capture
+        };
+        const response = await razorpay.orders.create(options);
+        console.log(response);
+
+        // Save the order
+        const order = new Order({
+            user: req.user._id,
+            chapter: chapter._id,
+            amount: req.body.amount,
+            currency: "INR",
+            orderId: response.id,
+            status: "Pending",
+        });
+
+        await order.save();
+
+        res.status(200).json({
+            success: true,
+            data: order,
+        });
+    } catch (error) {
+        console.error("Error purchasing course:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error. Please try again.",
+        });
     }
 };
 
-const crypto = require("crypto");
-
 exports.verifyPayment = async (req, res) => {
     try {
-        const userId = req.user._id; // Get user ID from the authenticated user
-        const { paymentId, orderId, signature } = req.body;
+        const {
+            razorpay_payment_id,
+            razorpay_order_id,
+            razorpay_signature,
 
-        // Step 1: Generate expected signature using orderId and paymentId
-        const generated_signature = crypto
+        } = req.body;
+
+        const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+        const expectedSignature = crypto
             .createHmac("sha256", process.env.RAZORPAY_SECRET)
-            .update(orderId + "|" + paymentId)
+            .update(body)
             .digest("hex");
 
-        // Step 2: Compare the generated signature with the one from Razorpay
-        if (generated_signature === signature) {
-            // Update order status in the database
-            const updatedOrder = await Order.updateOne(
-                { orderId },
-                {
-                    $set: {
-                        status: "Paid",
-                        paymentId
-                    }
-                }
-            );
+        const isAuthentic = expectedSignature === razorpay_signature;
 
-            // Optionally, you could also confirm the user has the same ID as the one in the order
-            const order = await Order.findOne({ orderId }).populate('course');
+        if (!isAuthentic) {
+            console.log("Payment verification failed");
+            return res.status(400).json({
+                success: false,
+                message: "Payment verification failed",
+            });
+        } else {
+            console.log("Payment verified successfully");
+        }
 
-            if (order && order.user.toString() === userId.toString()) {
-                // If the order exists and belongs to the user, add the course to user's courses array
-                await User.findByIdAndUpdate(
-                    userId,
-                    { $addToSet: { courses: order.course } }, // $addToSet prevents duplicates
+        let order = await Order.findOne({ orderId: razorpay_order_id });
+        if (order.chapter) {
+
+            // Add the user to the purchasedUsers array for the chapter
+            await Chapter.findByIdAndUpdate(order.chapter, {
+                $addToSet: { purchasedUsers: order.user },
+            });
+        } else if (order.course) {
+            // Add the user to the purchasedUsers array for all chapters in the course
+            const course = await Course.findById(order.course);
+            await User.findByIdAndUpdate(order.user, {
+                $addToSet: { courses: order.course },
+            });
+            for (const chapter of course.chapters) {
+                await Chapter.findByIdAndUpdate(
+                    chapter.chapter._id,
+                    { $addToSet: { purchasedUsers: order.user } },
                     { new: true }
                 );
             }
-
-            return res.status(200).json({
-                success: true,
-                message: "Payment verified successfully and course added!",
-            });
-        } else {
-            // Payment verification failed
-            return res.status(400).json({
-                success: false,
-                message: "Payment verification failed.",
-            });
         }
+
+
+        res.status(200).json({
+            success: true,
+            message: "Payment verified successfully",
+        });
     } catch (error) {
         console.error("Error verifying payment:", error);
         res.status(500).json({
             success: false,
-            message: "Internal server error. Could not verify payment.",
+            message: "Internal server error. Please try again.",
         });
     }
 };

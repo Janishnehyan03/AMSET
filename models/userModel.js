@@ -76,6 +76,7 @@ const userSchema = new mongoose.Schema(
     completedChapters: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Chapter" },
     ],
+    
     answers: [
       {
         chapterId: { type: mongoose.Schema.Types.ObjectId, ref: "Chapter" },
