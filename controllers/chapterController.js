@@ -29,7 +29,7 @@ exports.getOneChapter = async (req, res) => {
         const chapter = await Chapter.findById(req.params.chapterId)
             .populate('questions'); // Populate the questions
 
-        if (!chapter) {
+            if (!chapter) {
             return res.status(404).json({ message: "Chapter Not Found" });
         }
         if (courseId) {
@@ -55,6 +55,7 @@ exports.getOneChapter = async (req, res) => {
             if (req.user.isAdmin) {
                 // User has access, include the videoUrl
                 const chapterWithVideo = await Chapter.findById(req.params.chapterId).select('videoUrl');
+
                 videoUrl = chapterWithVideo.videoUrl;
             } else {
                 const isEnrolled = chapter.purchasedUsers.includes(req.user._id);
@@ -82,6 +83,7 @@ exports.getOneChapter = async (req, res) => {
             position: chapter.position,
             questions: chapter.questions,
             isPremium: chapter.isPremium,
+            notes: chapter.notes,
             // Include the questions in the response
             ...(videoUrl && { videoUrl })
         };
@@ -98,6 +100,7 @@ exports.getOneChapter = async (req, res) => {
 
 exports.updateChapter = async (req, res) => {
     try {
+
         const chapter = await Chapter.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
         });
@@ -105,6 +108,7 @@ exports.updateChapter = async (req, res) => {
         if (!chapter) {
             return res.status(404).json({ error: "chapter not found" });
         }
+
         res.json(chapter);
     } catch (error) {
         res.status(500).json({ error: error.message });

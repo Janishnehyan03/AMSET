@@ -15,6 +15,7 @@ const chapterSchema = new mongoose.Schema(
     position: { type: Number },
     questions: [questionSchema],
     isPremium: { type: Boolean, default: false },
+    notes: { type: String },
     purchasedUsers: [
       {
         type: mongoose.Schema.Types.ObjectId,
