@@ -6,7 +6,9 @@ const orderSchema = new mongoose.Schema({
     chapter: { type: mongoose.Schema.Types.ObjectId, ref: 'Chapter' },
     amount: Number,
     orderId: String,
-    status: { type: String, default: 'pending' }
+    status: { type: String, default: 'pending', enum: ['pending', 'completed', 'failed'] },
+}, {
+    timestamps: true
 });
 
 const Order = mongoose.model('Order', orderSchema);

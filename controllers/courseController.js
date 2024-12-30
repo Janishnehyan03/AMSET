@@ -82,7 +82,7 @@ exports.updateCourse = async (req, res) => {
     }
 }
 
-exports. reorderChapters = async (req, res) => {
+exports.reorderChapters = async (req, res) => {
     try {
         const list = req.body;
 
@@ -205,31 +205,14 @@ exports.amsetRecommended = async (req, res) => {
 
     try {
         // Find users where any courseCoins object has coins equal to 300 and matches the provided courseId
-        const users = await User.aggregate([
-            {
-                $match: {
-                    "courseCoins.coins": 300, // Filter for coins equal to 300
-                    "courseCoins.courseId": new mongoose.Types.ObjectId(courseId), // Filter by the provided courseId
-                },
-            },
-            {
-                $lookup: {
-                    from: "courses", // Lookup to populate the courseId with course details
-                    localField: "courseCoins.courseId",
-                    foreignField: "_id",
-                    as: "recommendedCourses", // This will create an array of recommended courses
-                },
-            },
-            {
-                $project: {
-                    fullName: 1,          // Include fullName field
-                    username: 1,          // Include username field
-                    mobileNumber: 1,      // Include mobileNumber field
-                    recommendedCourses: 1, // Include the entire array of recommendedCourses
-                },
-            },
-        ]);
-
+        const users = await User.find({
+            "courseCoins.coins": { $gte: 300 },
+            "courseCoins.courseId": courseId,
+        }).populate({
+            path: "courseCoins.courseId",
+            select: "name description", // Select fields to include from the course
+        }).select("fullName username mobileNumber courseCoins");
+        console.log(users);
         if (!users.length) {
             return res.status(404).json({ message: "No recommended users found for this course." });
         }
@@ -281,7 +264,7 @@ exports.addChapterToCourse = async (req, res) => {
     }
 };
 
-exports.    applyForCourse = async (req, res) => {
+exports.applyForCourse = async (req, res) => {
     try {
         const { courseId } = req.params;
         const userId = req.user._id; // Assume user ID is available in the request
