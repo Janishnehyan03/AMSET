@@ -25,7 +25,7 @@ exports.purchaseCourse = async (req, res) => {
     };
 
     const response = await razorpay.orders.create(options);
-    console.log(response);
+
     for (const chapter of course.chapters) {
       await Chapter.findByIdAndUpdate(
         chapter.chapter._id,
@@ -62,12 +62,10 @@ exports.purchaseChapter = async (req, res) => {
   try {
     const { chapterId } = req.params;
 
-    const chapter = await Chapter.findByIdAndUpdate(
+    const chapter = await Chapter.findById(
       chapterId,
-      { $addToSet: { purchasedUsers: req.user._id } },
-      { new: true }
     );
-    console.log(chapter);
+
     if (!chapter) {
       return res.status(404).json({
         success: false,
@@ -81,7 +79,7 @@ exports.purchaseChapter = async (req, res) => {
       payment_capture: 1, // Auto capture
     };
     const response = await razorpay.orders.create(options);
-    console.log(response);
+
 
     // Save the order
     const order = new Order({
@@ -123,7 +121,6 @@ exports.verifyPayment = async (req, res) => {
     const isAuthentic = expectedSignature === razorpay_signature;
 
     if (!isAuthentic) {
-      console.log("Payment verification failed");
       return res.status(400).json({
         success: false,
         message: "Payment verification failed",

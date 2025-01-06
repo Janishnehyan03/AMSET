@@ -148,37 +148,6 @@ router.patch("/profile/:id", protect, async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
-const getProgress = async (userId, courseId) => {
-  try {
-    // Find all published chapters for the given course
-    const publishedChapters = await Chapter.find({
-      course: courseId,
-      isPublished: true,
-    });
-
-    const publishedChapterIds = publishedChapters.map((chapter) => chapter._id);
-
-    // Count the valid completed chapters by the user
-    const validCompletedChapters = await Progress.countDocuments({
-      user: userId,
-      chapter: { $in: publishedChapterIds },
-      isCompleted: true,
-    });
-
-    const progressPercentage =
-      publishedChapterIds.length > 0
-        ? (validCompletedChapters / publishedChapterIds.length) * 100
-        : 0;
-
-    return {
-      publishedChapters,
-      progressPercentage: progressPercentage.toFixed(2),
-    };
-  } catch (error) {
-    console.error("[GET_PROGRESS]", error);
-    return 0;
-  }
-};
 
 router.get("/data/:userId", protect, async (req, res) => {
   try {
