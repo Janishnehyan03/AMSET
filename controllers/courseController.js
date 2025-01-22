@@ -212,7 +212,6 @@ exports.amsetRecommended = async (req, res) => {
             path: "courseCoins.courseId",
             select: "name description", // Select fields to include from the course
         }).select("fullName username mobileNumber courseCoins");
-        console.log(users);
         if (!users.length) {
             return res.status(404).json({ message: "No recommended users found for this course." });
         }

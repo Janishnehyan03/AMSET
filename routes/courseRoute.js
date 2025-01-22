@@ -227,19 +227,16 @@ router.patch(
 );
 router.patch("/:courseId/publish", protect, isAdmin, async (req, res) => {
   try {
-    const course = await Course.findById(req.params.courseId);
-    const chapters = await Chapter.find({ course: course._id });
+    const course = await Course.findById(req.params.courseId)
     if (!course) {
       return res.status(404).json({ message: "Not found" });
     }
 
-    const hasPublishedChapter = chapters.some((chapter) => chapter.isPublished);
 
     if (
       !course.title ||
       !course.description ||
-      !course.imageUrl ||
-      !hasPublishedChapter
+      !course.imageUrl 
     ) {
       return res.status(401).json({ message: "Missing required fields" });
     }
