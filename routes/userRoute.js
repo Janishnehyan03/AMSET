@@ -54,7 +54,6 @@ router.post("/login", async (req, res) => {
     //create token data
     const tokenData = {
       id: user._id,
-      username: user.username,
       email: user.email,
     };
 
@@ -85,11 +84,11 @@ router.post("/login", async (req, res) => {
 router.post("/register", async (req, res, next) => {
   try {
 
-    const { username, email, password, mobileNumber, fullName } = req.body;
-    if (!username || !email || !password || !mobileNumber || !fullName) {
+    const {  email, password, mobileNumber, fullName } = req.body;
+    if ( !email || !password || !mobileNumber || !fullName) {
       return res.status(400).json({
         error:
-          "Please provide full name, username, email, mobile number, and password",
+          "Please provide full name,  email, mobile number, and password",
       });
     }
 
