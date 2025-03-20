@@ -10,20 +10,32 @@ const courseSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    chapters: [{ chapter: { type: mongoose.Types.ObjectId, ref: "Chapter" }, isPremium: { type: Boolean, default: true } }],
+    chapters: [
+      {
+        chapter: { type: mongoose.Types.ObjectId, ref: "Chapter" },
+        isPremium: { type: Boolean, default: true },
+      },
+    ],
     coinsOfRecommend: {
-      type: Number
+      type: Number,
     },
     vacancyCount: {
-      type: Number
+      type: Number,
     },
 
-    learners: [{ user: { type: mongoose.Types.ObjectId, ref: "User" }, joinedOn: { type: Date } }],
-    hiringPartners: [{
-      companyName: { type: String },
-      companyLogo: { type: String },
-      poster: { type: String },
-    }]
+    learners: [
+      {
+        user: { type: mongoose.Types.ObjectId, ref: "User" },
+        joinedOn: { type: Date },
+      },
+    ],
+    hiringPartners: [
+      {
+        companyName: { type: String },
+        companyLogo: { type: String },
+        poster: { type: String },
+      },
+    ],
   },
   { timestamps: true }
 );
