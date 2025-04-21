@@ -83,12 +83,10 @@ router.post("/login", async (req, res) => {
 
 router.post("/register", async (req, res, next) => {
   try {
-
-    const {  email, password, mobileNumber, fullName } = req.body;
-    if ( !email || !password || !mobileNumber || !fullName) {
+    const { email, password, mobileNumber, fullName } = req.body;
+    if (!email || !password || !mobileNumber || !fullName) {
       return res.status(400).json({
-        error:
-          "Please provide full name,  email, mobile number, and password",
+        error: "Please provide full name,  email, mobile number, and password",
       });
     }
 
@@ -102,7 +100,10 @@ router.post("/register", async (req, res, next) => {
     const hashedPassword = await bcryptjs.hash(password, 10);
 
     // Create a new user
-    const newUser = await User.create({ ...req.body, password: hashedPassword })
+    const newUser = await User.create({
+      ...req.body,
+      password: hashedPassword,
+    });
     // Clear sensitive data
     newUser.password = undefined;
 
@@ -128,7 +129,7 @@ router.get("/", protect, isAdmin, async (req, res) => {
 });
 router.get("/profile", protect, async (req, res) => {
   try {
-    let user = await User.findById(req.user._id)
+    let user = await User.findById(req.user._id);
     user.password = undefined;
     res.status(200).json(user);
   } catch (error) {
@@ -151,16 +152,15 @@ router.patch("/profile/:id", protect, async (req, res) => {
 router.get("/data/:userId", protect, async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).populate(
-      "courseCoins.courseId",
+      "courseCoins.courseId"
     );
-
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     user.password = undefined;
-    res.status(200).json({ user, });
+    res.status(200).json({ user });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

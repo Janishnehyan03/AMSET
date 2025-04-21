@@ -6,6 +6,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please provide full name"],
     },
+    hasAllAccess: {
+      type: Boolean,
+      default: false,
+    },
     email: {
       type: String,
       required: [true, "Please provide email"],

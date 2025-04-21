@@ -21,6 +21,7 @@ router.patch("/:id", protect, isAdmin, updateChapter);
 router.patch("/:id/questions", protect, isAdmin, createQuestions);
 router.patch("/:chapterId/questions/:questionId", protect, isAdmin, editQuestion);
 router.post("/:chapterId/complete-chapter", protect, completeChapter);
+router.delete("/:chapterId/questions/:questionId", protect, isAdmin, deleteQuestion);
 
 
 router.patch("/:id/unpublish", protect, isAdmin, async (req, res) => {

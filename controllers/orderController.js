@@ -1,240 +1,171 @@
-const Chapter = require("../models/chapterModel");
-const Course = require("../models/courseModel");
 const Order = require("../models/orderModel");
 const User = require("../models/userModel");
-const razorpay = require("../utils/razorpay");
+const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const dotenv = require("dotenv");
+dotenv.config();
 
-exports.purchaseCourse = async (req, res) => {
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY,
+  key_secret: process.env.RAZORPAY_SECRET,
+});
+
+const ALL_ACCESS_PRICE = 3000; // INR
+exports.getAllOrders = async (req, res) => {
   try {
-    const { courseId } = req.params;
-    const course = await Course.findById(courseId);
-
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
-    }
-
-    const options = {
-      amount: course.price * 100, // Convert to smallest currency unit
-      currency: "INR",
-      receipt: shortid.generate(),
-      payment_capture: 1, // Auto capture
-    };
-
-    const response = await razorpay.orders.create(options);
-
-    for (const chapter of course.chapters) {
-      await Chapter.findByIdAndUpdate(
-        chapter.chapter._id,
-        { $addToSet: { purchasedUsers: req.user._id } }, // $addToSet ensures no duplicates
-        { new: true }
-      );
-    }
-
-    const order = new Order({
-      user: req.user._id,
-      course: courseId,
-      amount: course.price,
-      currency: "INR",
-      orderId: response.id,
-      status: "pending",
-    });
-
-    await order.save();
-
+    const orders = await Order.find({}).populate("user", "name email");
     res.status(200).json({
       success: true,
-      data: response,
+      results: orders.length,
+      orders,
     });
   } catch (error) {
-    console.error("Error purchasing course:", error);
+    console.error("Error fetching orders:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error. Please try again.",
+      message: "Failed to fetch orders",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
 
-exports.purchaseChapter = async (req, res) => {
+
+exports.initiateAllAccessPurchase = async (req, res) => {
   try {
-    const { chapterId } = req.params;
-
-    const chapter = await Chapter.findById(
-      chapterId,
-    );
-
-    if (!chapter) {
-      return res.status(404).json({
+    const user = await User.findById(req.user._id);
+    
+    if (user.hasAllAccess) {
+      return res.status(400).json({
         success: false,
-        message: "Chapter not found",
+        message: "You already have all-access to courses",
       });
     }
+
     const options = {
-      amount: req.body.amount * 100, // Convert to smallest currency unit
+      amount: ALL_ACCESS_PRICE * 100,
       currency: "INR",
       receipt: crypto.randomBytes(4).toString("hex"),
-      payment_capture: 1, // Auto capture
     };
-    const response = await razorpay.orders.create(options);
 
+    const order = await razorpay.orders.create(options);
 
-    // Save the order
-    const order = new Order({
+    const newOrder = new Order({
       user: req.user._id,
-      chapter: chapter._id,
-      amount: req.body.amount,
+      amount: ALL_ACCESS_PRICE,
       currency: "INR",
-      orderId: response.id,
-      status: "pending",
+      orderId: order.id,
+      status: "created",
     });
 
-    await order.save();
+    await newOrder.save();
 
     res.status(200).json({
       success: true,
       data: order,
     });
   } catch (error) {
-    console.error("Error purchasing course:", error);
+    console.error("Error initiating payment:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error. Please try again.",
+      message: "Failed to initiate payment",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
 
-exports.verifyPayment = async (req, res) => {
+exports.verifyAllAccessPayment = async (req, res) => {
   try {
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
-      req.body;
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
 
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required payment verification fields",
+      });
+    }
+
+    // Verify signature
     const body = razorpay_order_id + "|" + razorpay_payment_id;
-
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_SECRET)
       .update(body)
       .digest("hex");
 
-    const isAuthentic = expectedSignature === razorpay_signature;
-
-    if (!isAuthentic) {
+    if (expectedSignature !== razorpay_signature) {
       return res.status(400).json({
         success: false,
-        message: "Payment verification failed",
+        message: "Payment verification failed - invalid signature",
       });
-    } else {
-      console.log("Payment verified successfully");
     }
 
-    let order = await Order.findOne({ orderId: razorpay_order_id });
-    if (order.chapter) {
-      // Add the user to the purchasedUsers array for the chapter
-      await Chapter.findByIdAndUpdate(order.chapter, {
-        $addToSet: { purchasedUsers: order.user },
+    // Find and update order
+    const order = await Order.findOneAndUpdate(
+      { orderId: razorpay_order_id },
+      {
+        razorpayPaymentId: razorpay_payment_id,
+        razorpayOrderId: razorpay_order_id,
+        razorpaySignature: razorpay_signature,
+        status: "completed",
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
       });
-      await order.updateOne({ status: "completed" });
-    } else if (order.course) {
-      // Add the user to the purchasedUsers array for all chapters in the course
-      const course = await Course.findById(order.course);
-      await User.findByIdAndUpdate(order.user, {
-        $addToSet: { courses: order.course },
-      });
-      for (const chapter of course.chapters) {
-        await Chapter.findByIdAndUpdate(
-          chapter.chapter._id,
-          { $addToSet: { purchasedUsers: order.user } },
-          { new: true }
-        );
-      }
     }
+
+    // Grant all-access to user
+    await User.findByIdAndUpdate(order.user, {
+      hasAllAccess: true,
+    });
 
     res.status(200).json({
       success: true,
-      message: "Payment verified successfully",
+      message: "Payment verified successfully!",
     });
   } catch (error) {
     console.error("Error verifying payment:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error. Please try again.",
+      message: "Failed to verify payment",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
 
-exports.getMyChapters = async (req, res) => {
+exports.getUserOrderStatus = async (req, res) => {
   try {
-    // Show the purchased order details and the chapters
-    const orders = await Order.find({
+    const order = await Order.findOne({
       user: req.user._id,
-      status: { $ne: "pending" },
+      status: { $in: ["pending", "completed"] },
     });
 
-    let chapters = [];
-    let paymentDetails = [];
-    for (const order of orders) {
-      if (order.chapter) {
-        const chapter = await Chapter.findById(order.chapter);
-        chapters.push(chapter);
-        paymentDetails.push({
-          orderId: order.orderId,
-          amount: order.amount,
-          currency: order.currency,
-          status: order.status,
-          createdAt: order.createdAt,
-          chapter: chapter,
-        });
-      } else if (order.course) {
-        const course = await Course.findById(order.course);
-        for (const chapter of course.chapters) {
-          chapters.push(chapter.chapter);
-          paymentDetails.push({
-            orderId: order.orderId,
-            amount: order.amount,
-            currency: order.currency,
-            status: order.status,
-            createdAt: order.createdAt,
-            chapter: chapter.chapter,
-          });
-        }
-      }
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "No active or pending order found",
+      });
     }
+
     res.status(200).json({
       success: true,
       data: {
-        paymentDetails,
+        status: order.status,
+        amount: order.amount,
+        currency: order.currency,
+        createdAt: order.createdAt,
+        orderId: order.orderId,
       },
     });
   } catch (error) {
-    console.error("Error fetching chapters:", error);
+    console.error("Error fetching order status:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error. Please try again.",
-    });
-  }
-};
-
-exports.getAllOrders = async (req, res) => {
-  try {
-    const orders = await Order.find()
-      .populate("user")
-      .populate("course")
-      .populate("chapter")
-      .sort({ createdAt: -1 });
-    const totalRevenue = orders.reduce((acc, order) => acc + order.amount, 0);
-
-    res.status(200).json({
-      success: true,
-      data: orders,
-      totalRevenue: totalRevenue,
-    });
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error. Please try again.",
+      message: "Failed to fetch order status",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
