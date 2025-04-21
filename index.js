@@ -21,7 +21,14 @@ app.use(express.json());
 app.use(require("morgan")("dev"));
 app.use(
   cors({
-    origin: ["http://localhost:5002/", "https://amset-client.vercel.app/"],
+    origin: (origin, callback) => {
+      const allowedOrigins = ["http://localhost:5002", "https://amset-client.vercel.app"];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
