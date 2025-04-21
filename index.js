@@ -27,8 +27,6 @@ app.use(
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    // Remove exposedHeaders: ["set-cookie"] unless you specifically need it
   })
 );
 
