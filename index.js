@@ -21,17 +21,19 @@ app.use(express.json());
 app.use(require("morgan")("dev"));
 app.use(
   cors({
-    origin: (origin, callback) => {
-      const allowedOrigins = ["http://localhost:5002", "https://amset-client.vercel.app"];
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: [ // Specify allowed origins explicitly
+      "http://localhost:5002", // Your frontend URL
+      "https://amset-client.vercel.app"
+    ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    // Remove exposedHeaders: ["set-cookie"] unless you specifically need it
   })
 );
+
+// Handle preflight requests
+app.options('*', cors()); // Enable preflight across all routes
 app.use(cookieParser());
 
 app.use("/api/user", userRoute);
