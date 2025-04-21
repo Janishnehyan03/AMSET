@@ -19,15 +19,20 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(require("morgan")("dev"));
-app.use(cors({ origin: true, credentials: true }));
+app.use(
+  cors({
+    origin: ["http://localhost:5002/", "https://amset-client.vercel.app/"],
+    credentials: true,
+  })
+);
 app.use(cookieParser());
 
 app.use("/api/user", userRoute);
 app.use("/api/course", courseRoute);
 app.use("/api/category", categoryRoute);
 app.use("/api/chapter", chapterRoute);
-app.use('/api/order',orderRoute)
-app.use('/api/job',jobRoute)
+app.use("/api/order", orderRoute);
+app.use("/api/job", jobRoute);
 
 app.get("/api", (req, res) => {
   let cookie = req.cookies.amset_token;
