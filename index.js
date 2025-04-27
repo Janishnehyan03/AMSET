@@ -19,19 +19,14 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(require("morgan")("dev"));
+// Make sure this is before your routes
 app.use(
   cors({
-    origin: [ // Specify allowed origins explicitly
-      "http://localhost:5002", // Your frontend URL
-      "https://amset-client.vercel.app"
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin:true,
+    credentials: true, // Allow credentials (cookies) to be sent
   })
 );
 
-// Handle preflight requests
-app.options('*', cors()); // Enable preflight across all routes
 app.use(cookieParser());
 
 app.use("/api/user", userRoute);
