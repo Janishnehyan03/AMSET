@@ -13,8 +13,10 @@ exports.createCourse = async (req, res) => {
   }
 };
 exports.getCourses = async (req, res) => {
+  let query = req.query || {};
   try {
-    const coursesWithChapters = await Course.find();
+    const coursesWithChapters = await Course.find(query)
+
 
     res.json({
       results: coursesWithChapters.length,
