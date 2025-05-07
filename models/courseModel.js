@@ -16,6 +16,11 @@ const courseSchema = new mongoose.Schema(
         ref: "Chapter",
       },
     ],
+    instructor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Instructor",
+    
+    },
   },
   { timestamps: true }
 );

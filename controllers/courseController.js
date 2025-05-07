@@ -15,8 +15,7 @@ exports.createCourse = async (req, res) => {
 exports.getCourses = async (req, res) => {
   let query = req.query || {};
   try {
-    const coursesWithChapters = await Course.find(query)
-
+    const coursesWithChapters = await Course.find(query).populate('instructor');
 
     res.json({
       results: coursesWithChapters.length,
@@ -28,9 +27,9 @@ exports.getCourses = async (req, res) => {
 };
 exports.getCourse = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id).populate(
-      "chapters"
-    );
+    const course = await Course.findById(req.params.id)
+      .populate("chapters")
+      .populate("instructor");
 
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
@@ -43,6 +42,7 @@ exports.getCourse = async (req, res) => {
 };
 exports.updateCourse = async (req, res) => {
   try {
+    console.log(req.body);
     const course = await Course.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
@@ -222,41 +222,45 @@ exports.amsetRecommended = async (req, res) => {
 };
 
 exports.addChapterToCourse = async (req, res) => {
+  console.log(req.body);
   const { courseId } = req.params;
-  const { title } = req.body;
+  const { chapterId, title } = req.body;
 
   try {
-    let existingChapter = await Chapter.findOne({
-      title,
-      // course: courseId,
-    });
-    if (existingChapter) {
-      return res.status(400).json({ message: "Chapter already exists" });
+    if (title) {
+      const chapter = await Chapter.create({
+        title,
+        course: courseId,
+      });
+      return res.status(200).json(chapter);
     }
-    let chapter = await Chapter.create({
-      title,
-    });
+    // Find the course by ID
+    const chapter = await Chapter.findById(chapterId);
 
-    const chapterId = chapter._id; // Get the ID of the newly created chapter
-    // Check if the course exists
+    if (!chapter) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    // Add the chapter to the course
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    // Check if the chapter already exists in the course
+    // Check if the chapter is already in the course
     if (course.chapters.includes(chapterId)) {
-      console.log("Chapter already exists in course:", chapterId);
       return res
         .status(400)
-        .json({ message: "Chapter already added to course" });
+        .json({ message: "Chapter already added to the course" });
     }
 
-    // Add chapter to the course
+    // Add the chapter to the course's chapters array
     course.chapters.push(chapterId);
     await course.save();
 
-    res.status(200).json({ message: "Chapter added successfully", course });
+    res
+      .status(200)
+      .json({ message: "Chapter added to course successfully", course });
   } catch (error) {
     console.error("Error adding chapter to course:", error);
     res.status(500).json({ message: "Internal server error" });

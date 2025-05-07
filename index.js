@@ -8,6 +8,7 @@ const categoryRoute = require("./routes/categoryRoute.js");
 const chapterRoute = require("./routes/chapterRoute.js");
 const orderRoute = require("./routes/orderRoute.js");
 const jobRoute = require("./routes/jobRoute.js");
+const instructorRoute = require("./routes/instructorRoute.js");
 
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -35,6 +36,7 @@ app.use("/api/category", categoryRoute);
 app.use("/api/chapter", chapterRoute);
 app.use("/api/order", orderRoute);
 app.use("/api/job", jobRoute);
+app.use("/api/instructor", instructorRoute);
 
 app.get("/api", (req, res) => {
   let cookie = req.cookies.amset_token;

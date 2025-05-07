@@ -12,6 +12,8 @@ router.patch(
 );
 router.get("/", jobController.getAllJobs);
 router.get("/:id", jobController.getJobById);
+router.post("/save/:id", protect, jobController.saveJobToUser);
+router.post("/unsave/:id", protect, jobController.unsaveJobFromUser);
 router.put("/:id", jobController.updateJob);
 router.delete("/:id", jobController.deleteJob);
 

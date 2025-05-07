@@ -1,4 +1,5 @@
 const Job = require("../models/jobModel");
+const User = require("../models/userModel");
 
 // Create Job
 exports.createJob = async (req, res) => {
@@ -65,6 +66,67 @@ exports.updateApplicationStatus = async (req, res) => {
     res
       .status(200)
       .json({ success: true, message: "Status updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.saveJobToUser = async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const userId = req.user._id; // Assuming you have user ID from the request
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    // Check if the job is already saved by the user
+    const user = await User.findById(userId);
+    if (user.savedJobs.includes(jobId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Job already saved",
+      });
+    }
+
+    // Save the job to the user's saved jobs
+    user.savedJobs.push(jobId);
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Job saved successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.unsaveJobFromUser = async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const userId = req.user._id; // Assuming you have user ID from the request
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    // Check if the job is already saved by the user
+    const user = await User.findById(userId);
+    if (!user.savedJobs.includes(jobId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Job not saved",
+      });
+    }
+
+    // Remove the job from the user's saved jobs
+    user.savedJobs = user.savedJobs.filter((job) => job.toString() !== jobId);
+    await user.save();
+    res
+      .status(200)
+      .json({ success: true, message: "Job unsaved successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });

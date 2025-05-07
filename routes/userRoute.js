@@ -151,9 +151,7 @@ router.patch("/profile/:id", protect, async (req, res) => {
 
 router.get("/data/:userId", protect, async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).populate(
-      "courseCoins.courseId"
-    );
+    const user = await User.findById(req.params.userId).populate("savedJobs");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -194,7 +192,7 @@ router.get("/checkLogin", async (req, res) => {
     if (err) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    let user = await User.findById(decoded.id);
+    let user = await User.findById(decoded.id).populate("savedJobs");
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
